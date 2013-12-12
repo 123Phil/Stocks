@@ -1,12 +1,13 @@
 # This script uses yahoo's finance page to gather stock information
-# Simply enter your gmail info on lines 19 - 22
-#
 # The information is then emailed using info you must provide.
-# Info: Stocks with quarterly resulsts being announced at the end of
-#	today or before market open on the next business day (with positive EPS)
+# Info: Stocks with quarterly resulsts being announced at the
+#	end of today or before market open on the next business day
 # You should be able to import and use the script elsewhere, but I have not tested
 # If you wish to use multiple recipients, I believe you can do so by simply making
 #	Taddr a list of strings instead of a single string.
+# Email is sent in multipart, with HTML being preferred,
+#	HTML part uses fixed width font and spacing for cleaner look
+
 
 import re
 import urllib2
@@ -14,6 +15,7 @@ from bs4 import BeautifulSoup
 import time
 import datetime
 import smtplib
+from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 
@@ -111,7 +113,23 @@ def sort_tom(stocks):
 	return sorted
 
 
-def stocks_to_text(stocks):
+def stocks_to_htmlstring(stocks):
+	text = '<table border=0 cellpadding=2 cellspacing=0 width=600>'
+	bgs = ['eeeeee','dcdcdc']
+	i = 1
+	for stock in stocks:
+		color = bgs[i%2]
+		i += 1
+		text += '\n<tr bgcolor=' + color + '><td><a href="\n\t' \
+			+ stock[1] + '">' + stock[0][:30] + '</a></td>'
+		text += '<td align=center>' + stock[2][:8] + '</td>'
+		text += '<td align=center>' + stock[3][:4] + '</td>'
+		text += '<td align=center><small>' + stock[4] + '</small></td></tr>'
+	text += '</table>'
+	return text
+
+
+def stocks_to_plaintext(stocks):
 	text = ''
 	for stock in stocks:
 		text += stock[0][:30]
@@ -140,14 +158,27 @@ def stocks_to_text(stocks):
 
 
 def email_stock_info(username, password, fromaddr, toaddr):
+	email_msg = ''
+	html_msg  = """\
+	<html>
+		<head></head>
+		<body>
+			<p>
+	"""
+	
 	today = 'http://biz.yahoo.com/research/earncal/today.html'
 	stocks = get_stocks(today)
 	stocks = screen_positive_eps(stocks)
-	stocks = sort_today(stocks)
+	if stocks:
+		email_msg += 'Today:\n'
+		html_msg  += 'Today:<br>'
+		stocks = sort_today(stocks)
+		email_msg += stocks_to_plaintext(stocks) + '\n'
+		html_msg += stocks_to_htmlstring(stocks) + '<br>'
+	else:
+		email_msg += 'No positive stocks for today.\n\n'
+		html_msg += 'No positive stocks for today.<br><br>'
 	
-	email_msg = 'Today:\n'
-	email_msg += stocks_to_text(stocks) + '\n'
-
 	next_day = get_next_date()
 	next_url = 'http://biz.yahoo.com/research/earncal/' + next_day + '.html'
 	try:
@@ -155,17 +186,39 @@ def email_stock_info(username, password, fromaddr, toaddr):
 	except:
 		print 'Unable to open URL for next day.'
 		email_msg += 'Unable to open URL for next day.'
+		html_msg  += 'Unable to open URL for next day.'
 	else:
 		stocks = screen_positive_eps(stocks)
-		stocks = sort_tom(stocks)
+		if stocks:
+			email_msg += next_day + ':\n'
+			html_msg  += next_day + ':<br>'
+			stocks = sort_tom(stocks)
+			email_msg += stocks_to_plaintext(stocks)
+			html_msg  += stocks_to_htmlstring(stocks)
+		else:
+			email_msg += 'No positive stocks for next day.\n'
+			html_msg  += 'No positive stocks for next day.<br>'
+
+	html_msg += """\
+			<br>
+			</p>
+		</body>
+	</html>
+	"""
 	
-		email_msg += next_day + ':\n'
-		email_msg += stocks_to_text(stocks)
+#	In case you wish to check email_msg before sending...
+#	print 'PlainText:'
+#	print email_msg
+#	print '\nHTML:'
+#	print html_msg
 	
-	mime_msg = MIMEText(email_msg)
+	mime_msg = MIMEMultipart('alternative')
+	mime_msg.attach(MIMEText(email_msg, 'plain'))
+	mime_msg.attach(MIMEText(html_msg, 'html'))
 	mime_msg['Subject'] = "Stock Information"
 	mime_msg['From'] = fromaddr
 	mime_msg['To'] = toaddr
+	
 	send_email(username, password, fromaddr, toaddr, mime_msg)
 
 
