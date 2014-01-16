@@ -115,25 +115,24 @@ def print_stock_info():
 	today = 'http://biz.yahoo.com/research/earncal/today.html'
 	stocks = get_stocks(today)
 	stocks = screen_positive_eps(stocks)
+	stocks = sort_today(stocks)
 	if stocks:
 		msg += 'Today:\n'
-		stocks = sort_today(stocks)
-		email_msg += stocks_to_text(stocks) + '\n'
+		msg += stocks_to_text(stocks)
 	else:
-		msg += 'No positive stocks for today.\n\n'
+		msg += 'No positive stocks for today.\n'
 	
 	next_day = get_next_date()
 	next_url = 'http://biz.yahoo.com/research/earncal/' + next_day + '.html'
 	try:
 		stocks = get_stocks(next_url)
 	except:
-		print 'Unable to open URL for next day.'
 		msg += 'Unable to open URL for next day.'
 	else:
 		stocks = screen_positive_eps(stocks)
+		stocks = sort_tom(stocks)
 		if stocks:
 			msg += next_day + ':\n'
-			stocks = sort_tom(stocks)
 			msg += stocks_to_text(stocks)
 		else:
 			msg += 'No positive stocks for ' + next_day
