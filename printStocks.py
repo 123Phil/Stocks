@@ -49,7 +49,6 @@ def get_next_date():
 
 
 def screen_positive_eps(stocks):
-	print 'Screening stocks for positive EPS...'
 	positives = []
 	for stock in stocks:
 		if stock[3] != 'N/A' and float(stock[3]) > 0.0:
@@ -58,7 +57,6 @@ def screen_positive_eps(stocks):
 
 
 def sort_today(stocks):
-	print "Sorting today's stocks..."
 	sorted = []
 	for stock in stocks:
 		if stock[4] == 'After Market Close':
@@ -70,7 +68,6 @@ def sort_today(stocks):
 
 
 def sort_tom(stocks):
-	print "Sorting next business day's stocks..."
 	sorted = []
 	for stock in stocks:
 		if stock[4] == 'Before Market Open':
@@ -89,8 +86,8 @@ def stocks_to_text(stocks):
 		if spaces < 0:
 			spaces = 0
 		text += ' ' * (spaces + 2)
-		text += stock[2][:8]
-		spaces = 8 - len(stock[2])
+		text += stock[2][:12]
+		spaces = 13 - len(stock[2])
 		if spaces < 0:
 			spaces = 0
 		text += ' ' * spaces
@@ -100,11 +97,6 @@ def stocks_to_text(stocks):
 			spaces = 0
 		text += ' ' * (spaces+2)
 		text += stock[4]
-		spaces = 18 - len(stock[4])
-		if spaces < 0:
-			spaces = 0
-		text += ' ' * (spaces+2)
-		text += stock[1]
 		text += '\n'
 	return text
 
@@ -116,9 +108,10 @@ def print_stock_info():
 	stocks = get_stocks(today)
 	stocks = screen_positive_eps(stocks)
 	stocks = sort_today(stocks)
+
 	if stocks:
 		msg += 'Today:\n'
-		msg += stocks_to_text(stocks)
+		msg += stocks_to_text(stocks) + '\n'
 	else:
 		msg += 'No positive stocks for today.\n'
 	
@@ -135,8 +128,9 @@ def print_stock_info():
 			msg += next_day + ':\n'
 			msg += stocks_to_text(stocks)
 		else:
-			msg += 'No positive stocks for ' + next_day
+			msg += 'No positive stocks for ' + next_day + '\n'
 
+	print ''
 	print msg
 
 
